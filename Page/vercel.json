@@ -1,0 +1,23 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    {
+      "source": "/canva-site-1",
+      "destination": "https://kiwi-3dytlt.my.canva.site"
+    },
+    {
+      "source": "/canva-site-1/(.*)",
+      "destination": "https://kiwi-3dytlt.my.canva.site/$1"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET, OPTIONS" },
+        { "key": "Content-Security-Policy", "value": "frame-ancestors 'self' https://*.redux.name.ng;" }
+      ]
+    }
+  ]
+}

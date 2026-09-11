@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Portal</title>
+<!-- Fix #1: @import must not be inside <style> after other rules; use <link> instead -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0d0f;
+    --surface: #16161a;
+    --border: #272730;
+    --accent: #7c6af7;
+    --accent-soft: rgba(124, 106, 247, 0.12);
+    --text: #e8e8f0;
+    --muted: #6b6b80;
+    --radius: 14px;
+  }
+
+  html, body {
+    height: 100%; width: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+
+  /* ── Screens ── */
+  .screen { display: none; width: 100%; height: 100vh; }
+  .screen.active { display: flex; flex-direction: column; }
+
+  /* ══ HOME ══ */
+  #home { justify-content: center; align-items: center; }
+  .home-header { text-align: center; margin-bottom: 48px; }
+  .home-header h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 6px; }
+  .home-header p { color: var(--muted); font-size: 14px; }
+
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+    width: 100%; max-width: 800px;
+    padding: 0 28px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px 24px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s, transform 0.15s;
+    position: relative;
+    user-select: none;
+  }
+  .card:not(.disabled):hover { border-color: var(--accent); background: var(--accent-soft); transform: translateY(-2px); }
+  .card.disabled { opacity: 0.4; cursor: not-allowed; }
+  .card-icon { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; margin-bottom: 18px; }
+  .card-icon.purple { background: rgba(124,106,247,0.18); }
+  .card-icon.blue   { background: rgba(80,160,247,0.18); }
+  .card-icon.green  { background: rgba(72,199,142,0.18); }
+  .card-icon.orange { background: rgba(247,166,80,0.18); }
+  .card h3 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .card p  { font-size: 13px; color: var(--muted); }
+  .badge { position: absolute; top: 14px; right: 14px; font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .badge.active { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent); }
+  .badge.soon   { background: rgba(107,107,128,0.15); color: var(--muted); border: 1px solid var(--border); }
+
+  /* ══ LIST ══ */
+  #list { overflow: hidden; }
+  .topbar { display: flex; align-items: center; gap: 12px; padding: 18px 28px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .back-btn { background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 6px 14px; border-radius: 8px; font-size: 13px; cursor: pointer; transition: background 0.15s; }
+  .back-btn:hover { background: var(--border); }
+  .topbar .title { font-size: 15px; font-weight: 500; color: var(--muted); }
+  .topbar .title span { color: var(--text); font-weight: 600; }
+  .list-content { flex: 1; overflow-y: auto; padding: 28px; }
+  .list-content h2 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+  .list-content .sub { font-size: 13px; color: var(--muted); margin-bottom: 28px; }
+  .site-list { display: flex; flex-direction: column; gap: 10px; }
+  .site-item { display: flex; align-items: center; gap: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+  .site-item:hover { border-color: var(--accent); background: var(--accent-soft); }
+  .site-thumb { width: 40px; height: 40px; border-radius: 8px; background: var(--accent-soft); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .site-info { flex: 1; min-width: 0; }
+  .site-info strong { display: block; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .site-info span   { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+  .site-arrow { color: var(--muted); font-size: 16px; flex-shrink: 0; }
+
+  /* ══ EMBED — full standalone, zero chrome ══ */
+  #embed { position: fixed; inset: 0; z-index: 100; }
+  #embed-frame { width: 100%; height: 100%; border: none; display: block; }
+
+  /* Ghost back button — only visible on hover near top-left */
+  #ghost-back {
+    position: fixed;
+    top: 12px; left: 12px;
+    z-index: 200;
+    background: rgba(13,13,15,0.75);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 12px;
+    font-family: 'Inter', system-ui, sans-serif;
+    padding: 5px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  #ghost-back.visible { opacity: 1; pointer-events: auto; }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     ADD YOUR SITES HERE
+     { name: "Label", url: "https://..." }
+════════════════════════════════════════════ -->
+<script>
+const SITES = {
+  canva: [
+    { name: "My Canva Site Mockup 1", url: "/canva-site-1" },
+    //{ name: "My Canva Site Mockup 2", url: "/canva-site-2" },
+    // { name: "Another Site", url: "https://..." },
+  ]
+};
+</script>
+<!-- ══════════════════════════════════════════ -->
+
+<!-- HOME -->
+<div id="home" class="screen active">
+  <div class="home-header">
+    <h1>My Portal</h1>
+    <p>Select a platform to browse your sites</p>
+  </div>
+  <div class="cards-grid">
+    <div class="card" onclick="openList('canva')">
+      <span class="badge active">Live</span>
+      <div class="card-icon purple">🎨</div>
+      <h3>Canva Websites</h3>
+      <p>Your published Canva sites and mockups</p>
+    </div>
+    <div class="card disabled">
+      <span class="badge soon">Soon</span>
+      <div class="card-icon blue">⚡</div>
+      <h3>Framer</h3>
+      <p>Framer published pages</p>
+    </div>
+    <div class="card disabled">
+      <span class="badge soon">Soon</span>
+      <div class="card-icon green">🌐</div>
+      <h3>Webflow</h3>
+      <p>Webflow projects and prototypes</p>
+    </div>
+    <div class="card disabled">
+      <span class="badge soon">Soon</span>
+      <div class="card-icon orange">📐</div>
+      <h3>Figma Sites</h3>
+      <p>Figma prototypes and mockups</p>
+    </div>
+  </div>
+</div>
+
+<!-- LIST -->
+<div id="list" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="goHome()">← Back</button>
+    <div class="title">Portal / <span id="list-label">Canva Websites</span></div>
+  </div>
+  <div class="list-content">
+    <h2 id="list-heading">Canva Websites</h2>
+    <p class="sub" id="list-sub"></p>
+    <div class="site-list" id="site-list-items"></div>
+  </div>
+</div>
+
+<!-- EMBED — standalone, no chrome -->
+<div id="embed" class="screen">
+  <iframe id="embed-frame" src="about:blank" allowfullscreen></iframe>
+</div>
+
+<!-- Ghost back — hovers over the embed, invisible until mouse near top -->
+<button id="ghost-back" onclick="goList()">← back to list</button>
+
+<script>
+  let currentCategory = null;
+  const categoryMeta = { canva: { label: "Canva Websites", icon: "🎨" } };
+
+  /* ── show/hide screens ── */
+  function show(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  /* ── ghost back button: show when mouse within 60px of top ── */
+  const ghostBack = document.getElementById('ghost-back');
+  let ghostTimer;
+  document.addEventListener('mousemove', e => {
+    const inEmbed = document.getElementById('embed').classList.contains('active');
+    if (!inEmbed) { ghostBack.classList.remove('visible'); return; }
+    if (e.clientY < 60) {
+      ghostBack.classList.add('visible');
+      clearTimeout(ghostTimer);
+      ghostTimer = setTimeout(() => ghostBack.classList.remove('visible'), 2000);
+    }
+  });
+
+  /* ── navigation ──
+     Fix #2: openList/openEmbed accept skipHistory flag so the popstate
+     handler can restore state without pushing duplicate history entries.
+  ── */
+  function openList(category, skipHistory) {
+    currentCategory = category;
+    const meta = categoryMeta[category];
+    const sites = SITES[category] || [];
+
+    document.getElementById('list-label').textContent = meta.label;
+    document.getElementById('list-heading').textContent = meta.label;
+    document.getElementById('list-sub').textContent =
+      sites.length ? `${sites.length} site${sites.length !== 1 ? 's' : ''} — click to open`
+                   : 'No sites yet. Edit the SITES list at the top of this file.';
+
+    const container = document.getElementById('site-list-items');
+    container.innerHTML = '';
+    sites.forEach(site => {
+      const item = document.createElement('div');
+      item.className = 'site-item';
+      item.innerHTML = `
+        <div class="site-thumb">${meta.icon}</div>
+        <div class="site-info">
+          <strong>${site.name}</strong>
+          <span>${site.url}</span>
+        </div>
+        <span class="site-arrow">›</span>
+      `;
+      item.addEventListener('click', () => openEmbed(site.name, site.url));
+      container.appendChild(item);
+    });
+
+    show('list');
+    if (!skipHistory) history.pushState({ screen: 'list', category }, '', window.location.pathname);
+  }
+
+  function openEmbed(name, url, skipHistory) {
+    document.getElementById('embed-frame').src = url;
+    document.title = name;
+    show('embed');
+    if (!skipHistory) history.pushState({ screen: 'embed', name, url }, '', window.location.pathname);
+  }
+
+  function goHome() {
+    document.getElementById('embed-frame').src = 'about:blank';
+    document.title = 'Portal';
+    show('home');
+    history.pushState({ screen: 'home' }, '', window.location.pathname);
+  }
+
+  function goList() {
+    document.getElementById('embed-frame').src = 'about:blank';
+    document.title = 'Portal';
+    ghostBack.classList.remove('visible');
+    if (currentCategory) openList(currentCategory);
+    else show('home');
+  }
+
+  /* ── browser back button support ── */
+  window.addEventListener('popstate', e => {
+    const s = e.state;
+    if (!s) { show('home'); return; }
+    if (s.screen === 'home') {
+      document.getElementById('embed-frame').src = 'about:blank';
+      document.title = 'Portal';
+      show('home');
+    } else if (s.screen === 'list') {
+      document.getElementById('embed-frame').src = 'about:blank';
+      document.title = 'Portal';
+      openList(s.category, true); // skipHistory: restore without adding new entry
+    } else if (s.screen === 'embed') {
+      openEmbed(s.name, s.url, true); // skipHistory: restore without adding new entry
+    }
+  });
+</script>
+</body>
+</html>
